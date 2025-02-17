@@ -5,7 +5,8 @@ const options = {
   protocolVersion: 5     // MQTT version 5 ka use
 };
 // Yeh broker wahi hai jo server use kar raha hai
-const client = mqtt.connect('mqtt://test.mosquitto.org', options);
+// const client = mqtt.connect('mqtt://test.mosquitto.org', options);
+const client = mqtt.connect('mqtt://test.mosquitto.org');
 
 // Unique deviceId define karo
 const deviceId = 'device123';

@@ -26,7 +26,8 @@ const options = {
 
 
 // ✅ MQTT broker se connect ho rahe hain
-const client = mqtt.connect('mqtt://test.mosquitto.org', options);
+// const client = mqtt.connect('mqtt://test.mosquitto.org', options);
+const client = mqtt.connect('mqtt://test.mosquitto.org');
 
 client.on('connect', () => {
   console.log("✅ Connected to MQTT broker");
