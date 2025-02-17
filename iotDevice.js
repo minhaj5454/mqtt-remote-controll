@@ -31,7 +31,7 @@ function startPublishing() {
     const topic = `device/${deviceId}/to/server`;
     const payload = JSON.stringify(sensorData);
 
-    client.publish(topic, payload, { qos: 1 }, (err) => {
+    client.publish(topic, payload, { qos: 2 }, (err) => {
       if (err) {
         console.error(`❌ Error publishing message from [${deviceId}]:`, err);
       } else {
@@ -46,7 +46,7 @@ client.on('connect', () => {
 
   // Subscribe karo control topic ke liye jahan server se command aayegi
   const controlTopic = `server/to/device/${deviceId}/control`;
-  client.subscribe(controlTopic, (err) => {
+  client.subscribe(controlTopic, { qos: 2 },(err) => {
     if (err) {
       console.error(`❌ Error subscribing to control topic:`, err);
     } else {

@@ -26,13 +26,13 @@ client.on('connect', () => {
   console.log("✅ Connected to MQTT broker");
 
   // Device messages ke liye topics subscribe kar rahe hain
-  client.subscribe('device/+/to/server', (err) => {
+  client.subscribe('device/+/to/server', { qos: 2 },(err) => {
     if (!err) {
       console.log("📩 Subscribed to topic: device/+/to/server");
     }
   });
 
-  client.subscribe('device/+/to/server2', (err) => {
+  client.subscribe('device/+/to/server2',{ qos: 2 }, (err) => {
     if (!err) {
       console.log("📩 Subscribed to topic: device/+/to/server2");
     }
@@ -70,7 +70,7 @@ app.post('/control', (req, res) => {
   const controlTopic = `server/to/device/${deviceId}/control`;
   const payload = JSON.stringify({ command });
   
-  client.publish(controlTopic, payload, { qos: 1 }, (err) => {
+  client.publish(controlTopic, payload, { qos: 2 }, (err) => {
     if (err) {
       console.error(`❌ Error sending control command to device [${deviceId}]:`, err);
       return res.status(500).json({ error: 'Failed to send control command' });
@@ -90,7 +90,7 @@ app.post('/send', (req, res) => {
   const topic = `server/to/device/${deviceId}`;
   const payload = JSON.stringify(message);
 
-  client.publish(topic, payload);
+  client.publish(topic, payload, { qos: 2 });
 
   console.log(`📤 Sent to [${deviceId}]:`, message);
   res.json({ success: true, message: `Sent to [${deviceId}]: ${JSON.stringify(message)}` });
