@@ -59,7 +59,7 @@ client.on('message', (topic, message) => {
   }
 });
 
-// ✅ Naya POST endpoint for control commands from mobile (Option 2)
+// ✅ Naya POST endpoint for control commands from mobile 
 app.post('/control', (req, res) => {
   const { deviceId, command } = req.body;
   if (!deviceId || !command) {
