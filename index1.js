@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 
 // ✅ MongoDB se connect ho rahe hain
-mongoose.connect('mongodb://localhost:27017/mqtt_messages')
+mongoose.connect('mongodb://localhost:27017/mqtt_messages_remote_controll')
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
@@ -19,41 +19,45 @@ const messageSchema = new mongoose.Schema({
 
 const Message = mongoose.model('Message', messageSchema);
 
+const options = {
+  keepalive: 60,         // Har 60 seconds mein ping
+  protocolVersion: 5     // MQTT version 5 ka use
+};
+
+
 // ✅ MQTT broker se connect ho rahe hain
-const client = mqtt.connect('mqtt://test.mosquitto.org');
+const client = mqtt.connect('mqtt://test.mosquitto.org', options);
 
 client.on('connect', () => {
   console.log("✅ Connected to MQTT broker");
 
-  // 1st topic to send msg from myMQTT
-  client.subscribe('device/+/to/server', (err) => {
+  // Device messages ke liye topics subscribe kar rahe hain
+  client.subscribe('device/+/to/server', { qos: 2 },(err) => {
     if (!err) {
-      console.log("📩 Subscribed to all device messages");
+      console.log("📩 Subscribed to topic: device/+/to/server");
     }
   });
 
-  // 2nd topic to send msg from myMQTT
-  client.subscribe('device/+/to/server2', (err) => {
+  client.subscribe('device/+/to/server2',{ qos: 2 }, (err) => {
     if (!err) {
-      console.log("📩 Subscribed to all device messages");
+      console.log("📩 Subscribed to topic: device/+/to/server2");
     }
   });
 });
 
-
-// ✅ Jab MQTT se koi message aata hai, usko process aur MongoDB me store kar dete hain
+// ✅ MQTT se aane wale messages ko process karke MongoDB me store kar rahe hain
 client.on('message', (topic, message) => {
   const topicParts = topic.split('/');  // Example: ['device', 'device123', 'to', 'server']
-  const deviceId = topicParts[1];  // 'device123'
+  const deviceId = topicParts[1];         // 'device123'
 
   try {
-    const msg = JSON.parse(message.toString().trim()); // JSON parse kar rahe hain
+    const msg = JSON.parse(message.toString().trim());
     console.log(`📥 Received from [${deviceId}]:`, msg);
 
     // MongoDB me message save kar rahe hain
     const msgDoc = new Message({ deviceId, topic, payload: msg });
     msgDoc.save()
-      .then(() => console.log(`💾 Message saved to MongoDB for device [${deviceId}]`))
+      .then(() => console.log(`💾 Message saved for device [${deviceId}]`))
       .catch(err => console.error(`❌ Error saving message for device [${deviceId}]:`, err));
 
   } catch (error) {
@@ -61,24 +65,44 @@ client.on('message', (topic, message) => {
   }
 });
 
+// ✅ Naya POST endpoint for control commands from mobile 
+app.post('/control', (req, res) => {
+  const { deviceId, command } = req.body;
+  if (!deviceId || !command) {
+    return res.status(400).json({ error: 'deviceId and command are required' });
+  }
+  
+  // Control topic jahan device command receive karega
+  const controlTopic = `server/to/device/${deviceId}/control`;
+  const payload = JSON.stringify({ command });
+  
+  client.publish(controlTopic, payload, { qos: 2 }, (err) => {
+    if (err) {
+      console.error(`❌ Error sending control command to device [${deviceId}]:`, err);
+      return res.status(500).json({ error: 'Failed to send control command' });
+    }
+    console.log(`📤 Control command sent to device [${deviceId}]:`, { command });
+    res.json({ success: true, message: `Control command sent to device [${deviceId}]` });
+  });
+});
 
-// ✅ **POST API for Sending MQTT Message**
+// ✅ Existing POST endpoint for sending regular MQTT messages
 app.post('/send', (req, res) => {
   const { message, deviceId } = req.body;  
   if (!message || !deviceId) {
     return res.status(400).json({ error: 'Message & deviceId are required' });
   }
 
-  const topic = `server/to/device/${deviceId}`;  // Dynamic Device ID
-  const payload = JSON.stringify(message);  // JSON format me message bhejna
+  const topic = `server/to/device/${deviceId}`;
+  const payload = JSON.stringify(message);
 
-  client.publish(topic, payload);
+  client.publish(topic, payload, { qos: 2 });
 
   console.log(`📤 Sent to [${deviceId}]:`, message);
   res.json({ success: true, message: `Sent to [${deviceId}]: ${JSON.stringify(message)}` });
 });
 
-// ✅ **Server Start**
+// ✅ API Server Start
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`🚀 API Server running on http://localhost:${PORT}`);

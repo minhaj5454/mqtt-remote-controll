@@ -19,8 +19,14 @@ const messageSchema = new mongoose.Schema({
 
 const Message = mongoose.model('Message', messageSchema);
 
+const options = {
+  keepalive: 60,         // Har 60 seconds mein ping
+  protocolVersion: 5     // MQTT version 5 ka use
+};
+
+
 // ✅ MQTT broker se connect ho rahe hain
-const client = mqtt.connect('mqtt://test.mosquitto.org');
+const client = mqtt.connect('mqtt://test.mosquitto.org', options);
 
 client.on('connect', () => {
   console.log("✅ Connected to MQTT broker");

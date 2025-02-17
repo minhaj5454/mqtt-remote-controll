@@ -1,7 +1,11 @@
 const mqtt = require('mqtt');
 
+const options = {
+  keepalive: 60,         // Har 60 seconds mein ping
+  protocolVersion: 5     // MQTT version 5 ka use
+};
 // Yeh broker wahi hai jo server use kar raha hai
-const client = mqtt.connect('mqtt://test.mosquitto.org');
+const client = mqtt.connect('mqtt://test.mosquitto.org', options);
 
 // Unique deviceId define karo
 const deviceId = 'device123';
